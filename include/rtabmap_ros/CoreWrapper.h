@@ -294,8 +294,8 @@ private:
 	int genDepthFillIterations_;
 	double genDepthFillHolesError_;
 	int scanCloudMaxPoints_;
-	bool publish_tf_use_sensor_timestamp_;
-	bool publish_tf_no_redundant_;
+	bool publishTfUseSensorTimestamp_;
+	bool publishTfNoRedundant_;
 
 	rtabmap::Transform mapToOdom_;
 	boost::mutex mapToOdomMutex_;

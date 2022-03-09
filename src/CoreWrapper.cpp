@@ -127,8 +127,8 @@ CoreWrapper::CoreWrapper() :
 		previousStamp_(0),
 		mbClient_(0),
 		maxNodesRepublished_(2),
-		publish_tf_no_redundant_(false),
-		publish_tf_use_sensor_timestamp_(false)
+		publishTfNoRedundant_(false),
+		publishTfUseSensorTimestamp_(false)
 {
 	char * rosHomePath = getenv("ROS_HOME");
 	std::string workingDir = rosHomePath?rosHomePath:UDirectory::homeDir()+"/.ros";
@@ -220,8 +220,8 @@ void CoreWrapper::onInit()
 				"switches scan values.");
 	}
 
-	pnh.param("publish_tf_use_sensor_timestamp", publish_tf_use_sensor_timestamp_, publish_tf_use_sensor_timestamp_);
-	pnh.param("publish_tf_no_redundant", publish_tf_no_redundant_, publish_tf_no_redundant_);
+	pnh.param("publish_tf_use_sensor_timestamp", publishTfUseSensorTimestamp_, publishTfUseSensorTimestamp_);
+	pnh.param("publish_tf_no_redundant", publishTfNoRedundant_, publishTfNoRedundant_);
 
 	NODELET_INFO("rtabmap: frame_id      = %s", frameId_.c_str());
 	if(!odomFrameId_.empty())
@@ -912,11 +912,11 @@ void CoreWrapper::publishLoop(double tfDelay, double tfTolerance)
 		{
 			mapToOdomMutex_.lock();
 			
-			if (!publish_tf_no_redundant_ || (previousMapCorrection_ > previousPublish_)) {
+			if (!publishTfNoRedundant_ || (previousMapCorrection_ > previousPublish_)) {
 				previousPublish_ = previousMapCorrection_;
 
 				ros::Time tfExpiration;
-				if (publish_tf_use_sensor_timestamp_)
+				if (publishTfUseSensorTimestamp_)
 					tfExpiration = previousMapCorrection_ + ros::Duration(tfTolerance);
 				else
 					tfExpiration = ros::Time::now() + ros::Duration(tfTolerance);
