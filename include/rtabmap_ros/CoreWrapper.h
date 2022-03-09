@@ -294,6 +294,8 @@ private:
 	int genDepthFillIterations_;
 	double genDepthFillHolesError_;
 	int scanCloudMaxPoints_;
+	bool publish_tf_use_sensor_timestamp_;
+	bool publish_tf_no_redundant_;
 
 	rtabmap::Transform mapToOdom_;
 	boost::mutex mapToOdomMutex_;
@@ -405,6 +407,8 @@ private:
 	bool alreadyRectifiedImages_;
 	bool twoDMapping_;
 	ros::Time previousStamp_;
+	ros::Time previousPublish_;
+	ros::Time previousMapCorrection_;
 	std::set<int> nodesToRepublish_;
 	int maxNodesRepublished_;
 };

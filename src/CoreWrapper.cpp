@@ -126,7 +126,9 @@ CoreWrapper::CoreWrapper() :
 		twoDMapping_(Parameters::defaultRegForce3DoF()),
 		previousStamp_(0),
 		mbClient_(0),
-		maxNodesRepublished_(2)
+		maxNodesRepublished_(2),
+		publish_tf_no_redundant_(false),
+		publish_tf_use_sensor_timestamp_(false)
 {
 	char * rosHomePath = getenv("ROS_HOME");
 	std::string workingDir = rosHomePath?rosHomePath:UDirectory::homeDir()+"/.ros";
@@ -217,6 +219,9 @@ void CoreWrapper::onInit()
 				"detects automatically if the laser is upside down with /tf, then if so, it "
 				"switches scan values.");
 	}
+
+	pnh.param("publish_tf_use_sensor_timestamp", publish_tf_use_sensor_timestamp_, publish_tf_use_sensor_timestamp_);
+	pnh.param("publish_tf_no_redundant", publish_tf_no_redundant_, publish_tf_no_redundant_);
 
 	NODELET_INFO("rtabmap: frame_id      = %s", frameId_.c_str());
 	if(!odomFrameId_.empty())
@@ -906,14 +911,27 @@ void CoreWrapper::publishLoop(double tfDelay, double tfTolerance)
 		if(!odomFrameId_.empty())
 		{
 			mapToOdomMutex_.lock();
-			ros::Time tfExpiration = ros::Time::now() + ros::Duration(tfTolerance);
-			geometry_msgs::TransformStamped msg;
-			msg.child_frame_id = odomFrameId_;
-			msg.header.frame_id = mapFrameId_;
-			msg.header.stamp = tfExpiration;
-			rtabmap_ros::transformToGeometryMsg(mapToOdom_, msg.transform);
-			tfBroadcaster_.sendTransform(msg);
+			
+			if (!publish_tf_no_redundant_ || (previousMapCorrection_ > previousPublish_)) {
+				previousPublish_ = previousMapCorrection_;
+
+				ros::Time tfExpiration;
+				if (publish_tf_use_sensor_timestamp_)
+					tfExpiration = previousMapCorrection_ + ros::Duration(tfTolerance);
+				else
+					tfExpiration = ros::Time::now() + ros::Duration(tfTolerance);
+
+				geometry_msgs::TransformStamped msg;
+				msg.child_frame_id = odomFrameId_;
+				msg.header.frame_id = mapFrameId_;
+				msg.header.stamp = tfExpiration;
+				rtabmap_ros::transformToGeometryMsg(mapToOdom_, msg.transform);
+				tfBroadcaster_.sendTransform(msg);
+				
+			}
+
 			mapToOdomMutex_.unlock();
+			
 		}
 		r.sleep();
 	}
@@ -2164,6 +2182,7 @@ void CoreWrapper::process(
 			timeRtabmap = timer.ticks();
 			mapToOdomMutex_.lock();
 			mapToOdom_ = rtabmap_.getMapCorrection();
+			previousMapCorrection_ = stamp;
 
 			if(!odomFrameId.empty() && !odomFrameId_.empty() && odomFrameId_.compare(odomFrameId)!=0)
 			{
